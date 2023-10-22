@@ -7,6 +7,7 @@ class TreeNode():
         self.feature_val = feature_val
         self.prediction_probs = prediction_probs
         self.information_gain = information_gain
+        self.feature_importance = self.data.shape[0] * self.information_gain
         self.left = None
         self.right = None
 
