@@ -10,10 +10,11 @@ class DecisionTree():
     Predicting: Use "predict" function with test set features
     """
 
-    def __init__(self, max_depth=4, min_samples_leaf=1, min_information_gain=0.0) -> None:
+    def __init__(self, max_depth=4, min_samples_leaf=1, min_information_gain=0.0, numb_of_features_splitting=None) -> None:
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self.min_information_gain = min_information_gain
+        self.numb_of_features_splitting = numb_of_features_splitting
 
     def _entropy(self, class_probabilities: list) -> float:
         return sum([-p * np.log2(p) for p in class_probabilities if p>0])
@@ -39,6 +40,21 @@ class DecisionTree():
         group2 = data[~mask_below_threshold]
 
         return group1, group2
+    
+    def _select_features_to_use(self, data: np.array) -> list:
+        """
+        Randomly selects the features to use while splitting w.r.t. hyperparameter numb_of_features_splitting
+        """
+        feature_idx = list(range(data.shape[1]-1))
+
+        if self.numb_of_features_splitting == "sqrt":
+            fature_idx_to_use = np.random.choice(feature_idx, size=int(np.sqrt(len(feature_idx))))
+        elif self.numb_of_features_splitting == "log":
+            fature_idx_to_use = np.random.choice(feature_idx, size=int(np.log2(len(feature_idx))))
+        else:
+            fature_idx_to_use = feature_idx
+
+        return fature_idx_to_use
         
     def _find_best_split(self, data: np.array) -> tuple:
         """
@@ -48,8 +64,9 @@ class DecisionTree():
         min_part_entropy = 1e6
         min_entropy_feature_idx = None
         min_entropy_feature_val = None
+        fature_idx_to_use =  self._select_features_to_use(data)
 
-        for idx in range(data.shape[1]-1):
+        for idx in fature_idx_to_use:
             feature_val = np.median(data[:, idx])
             g1, g2 = self._split(data, idx, feature_val)
             part_entropy = self._partition_entropy([g1[:, -1], g2[:, -1]])
@@ -78,7 +95,10 @@ class DecisionTree():
         return label_probabilities
 
     def _create_tree(self, data: np.array, current_depth: int) -> TreeNode:
-        
+        """
+        Recursive, depth first tree creation algorithm
+        """
+
         # Check if the max depth has been reached (stopping criteria)
         if current_depth >= self.max_depth:
             return None
@@ -124,7 +144,7 @@ class DecisionTree():
         return pred_probs
 
     def train(self, X_train: np.array, Y_train: np.array) -> None:
-        
+        """Trains the model with given X and Y datasets"""
         # Concat features and labels
         self.labels_in_train = np.unique(Y_train)
         train_data = np.concatenate((X_train, np.reshape(Y_train, (-1, 1))), axis=1)
@@ -146,7 +166,7 @@ class DecisionTree():
         return pred_probs
 
     def predict(self, X_set: np.array) -> np.array:
-        """Returns the predicted probs for a given data set"""
+        """Returns the predicted labels for a given data set"""
 
         pred_probs = self.predict_proba(X_set)
         preds = np.argmax(pred_probs, axis=1)
