@@ -5,9 +5,9 @@ Done:
 
 1) Deep Feedforward Neural Network
 2) Decision Tree
+3) Random Forest
 
 In Progress:
 
 Not Started:
-1) Random Forest
-2) Gradient Boosted Trees
+1) Gradient Boosted Trees
