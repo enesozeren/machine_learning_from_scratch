@@ -8,7 +8,8 @@ class RandomForestClassifier():
     Predicting: Use "predict" function with test set features
     """
 
-    def __init__(self, n_base_learner=10, max_depth=4, min_samples_leaf=1, min_information_gain=0.0, numb_of_features_splitting=None, bootstrap_sample_size=None) -> None:
+    def __init__(self, n_base_learner=10, max_depth=5, min_samples_leaf=1, min_information_gain=0.0, \
+                 numb_of_features_splitting=None, bootstrap_sample_size=None) -> None:
         self.n_base_learner = n_base_learner
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
