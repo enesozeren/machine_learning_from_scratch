@@ -11,6 +11,15 @@ class DecisionTree():
     """
 
     def __init__(self, max_depth=4, min_samples_leaf=1, min_information_gain=0.0, numb_of_features_splitting=None) -> None:
+        """
+        Setting the class with hyperparameters
+        max_depth: (int) -> max depth of the tree
+        min_samples_leaf: (int) -> min # of samples required to be in a leaf to make the splitting possible
+        min_information_gain: (float) -> min information gain required to make the splitting possible
+        num_of_features_splitting: (str) ->  when splitting if sqrt then sqrt(# of features) features considered, 
+                                                            if log then log(# of features) features considered
+                                                            else all features are considered
+        """
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self.min_information_gain = min_information_gain
