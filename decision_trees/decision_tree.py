@@ -10,7 +10,9 @@ class DecisionTree():
     Predicting: Use "predict" function with test set features
     """
 
-    def __init__(self, max_depth=4, min_samples_leaf=1, min_information_gain=0.0, numb_of_features_splitting=None) -> None:
+    def __init__(self, max_depth=4, min_samples_leaf=1, 
+                 min_information_gain=0.0, numb_of_features_splitting=None,
+                 amount_of_say=None) -> None:
         """
         Setting the class with hyperparameters
         max_depth: (int) -> max depth of the tree
@@ -19,11 +21,13 @@ class DecisionTree():
         num_of_features_splitting: (str) ->  when splitting if sqrt then sqrt(# of features) features considered, 
                                                             if log then log(# of features) features considered
                                                             else all features are considered
+        amount_of_say: (float) -> used for Adaboost algorithm                                                    
         """
         self.max_depth = max_depth
         self.min_samples_leaf = min_samples_leaf
         self.min_information_gain = min_information_gain
         self.numb_of_features_splitting = numb_of_features_splitting
+        self.amount_of_say = amount_of_say
 
     def _entropy(self, class_probabilities: list) -> float:
         return sum([-p * np.log2(p) for p in class_probabilities if p>0])
@@ -193,11 +197,7 @@ class DecisionTree():
 
     def _calculate_feature_importance(self, node):
         """Calculates the feature importance by visiting each node in the tree recursively"""
-
-        # Add the feature_importance value if it is not a leaf node (has left or right node)
-        if node.left or node.right:
+        if node != None:
             self.feature_importances[node.feature_idx] += node.feature_importance
-            if node.left:
-                self._calculate_feature_importance(node.left)
-            if node.right:
-                self._calculate_feature_importance(node.right)
+            self._calculate_feature_importance(node.left)
+            self._calculate_feature_importance(node.right)         
