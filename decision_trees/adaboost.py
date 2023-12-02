@@ -18,7 +18,11 @@ class AdaBoostClassifier():
 
     def _calculate_amount_of_say(self, base_learner, X, y) -> float:
         """calculates the amount of say (see SAMME)"""
-        pass
+        K = np.unique(y).shape[0]
+        preds = base_learner.predict(X)
+        err = 1 - np.sum(preds==y) / preds.shape[0]
+        amount_of_say = np.log((1-err)/err) + np.log(K-1)
+        return amount_of_say
 
     def _fit_base_learner(self, X, y) -> DecisionTree:
         """Trains a Decision Tree model with depth 1 and returns the model"""

@@ -113,7 +113,7 @@ class DecisionTree():
         """
 
         # Check if the max depth has been reached (stopping criteria)
-        if current_depth >= self.max_depth:
+        if current_depth > self.max_depth:
             return None
         
         # Find best split
