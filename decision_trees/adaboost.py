@@ -17,19 +17,19 @@ class AdaBoostClassifier():
         self.n_base_learner = n_base_learner
         self.seed = seed
 
-    def _calculate_amount_of_say(self, base_learner, X, y) -> float:
+    def _calculate_amount_of_say(self, base_learner, X, y, sample_weights: np.array) -> float:
         """calculates the amount of say (see SAMME)"""
         K = np.unique(y).shape[0]
         preds = base_learner.predict(X)
-        err = 1 - np.sum(preds==y) / preds.shape[0]
+        err = 1 - np.sum((preds == y) * sample_weights) / np.sum(sample_weights)
         amount_of_say = np.log((1-err)/err) + np.log(K-1)
         return amount_of_say
 
-    def _fit_base_learner(self, X, y) -> DecisionTree:
+    def _fit_base_learner(self, X: np.array, y: np.array, sample_weights: np.array) -> DecisionTree:
         """Trains a Decision Tree model with depth 1 and returns the model"""
         base_learner = DecisionTree(max_depth=1)
-        base_learner.train(X, y)
-        base_learner.amount_of_say = self._calculate_amount_of_say(base_learner, X, y)
+        base_learner.train(X, y, sample_weights)
+        base_learner.amount_of_say = self._calculate_amount_of_say(base_learner, X, y, sample_weights)
 
         return base_learner
 
@@ -39,38 +39,12 @@ class AdaBoostClassifier():
         matches = (preds == y)
         not_matches = (~matches).astype(int)
         new_sample_weights = sample_weights * np.exp(base_learner.amount_of_say*not_matches)
+        # Normalize weights
         new_sample_weights = new_sample_weights / np.sum(new_sample_weights)
 
         return new_sample_weights
-
-    def _update_dataset(self, X, y, sample_weights) -> tuple:
-        """Creates bootstrapped samples w.r.t. sample weights"""
-        np.random.seed(self.seed)
-        n_samples = len(X)
-        bootstrap_indices = np.random.choice(n_samples, size=n_samples, replace=True, p=sample_weights)
-        X_bootstrapped = X[bootstrap_indices]
-        y_bootstrapped = y[bootstrap_indices]
-
-        # Initialize sample weights equally back
-        sample_weights = np.full(shape=n_samples, fill_value=1.0/n_samples)        
-
-        return X_bootstrapped, y_bootstrapped, sample_weights
-
-    def _update_base_learner_amount_of_say(self, base_learner_list):
-        """Unit Normalization for amount of says of base learners"""
-        amount_of_say_list = []
-
-        for i in range(len(base_learner_list)):
-            amount_of_say_list.append(base_learner_list[i].amount_of_say)
-
-        updated_amount_of_say_list = amount_of_say_list / np.sum(amount_of_say_list)
-
-        for i in range(len(base_learner_list)):
-            base_learner_list[i].amount_of_say = updated_amount_of_say_list[i]
-
-        return base_learner_list
     
-    def train(self, X_train, y_train) -> None:
+    def train(self, X_train: np.array, y_train: np.array) -> None:
         """
         trains base learners with given feature and label dataset 
         """
@@ -82,12 +56,9 @@ class AdaBoostClassifier():
         sample_weights = np.full(shape=m, fill_value=1.0/m)
         self.base_learner_list = []
         for i in range(self.n_base_learner):
-            base_learner = self._fit_base_learner(X, y)
+            base_learner = self._fit_base_learner(X, y, sample_weights)
             self.base_learner_list.append(base_learner)
             sample_weights = self._update_sample_weights(base_learner, X, y, sample_weights)
-            X, y, sample_weights = self._update_dataset(X, y, sample_weights)
-        
-        self.base_learner_list = self._update_base_learner_amount_of_say(self.base_learner_list)
 
     def _predict_proba_w_base_learners(self,  X: np.array) -> list:
         """

@@ -177,7 +177,7 @@ class DecisionTree():
         sample_weights: weight for each sample (used for AdaBoost algorithm), if none then every sample is equally weighted
         """
         
-        if sample_weights==None:
+        if sample_weights is None:
             sample_weights=np.full(X_train.shape[0], fill_value=1.0/X_train.shape[0])
 
         # Concat features and labels
