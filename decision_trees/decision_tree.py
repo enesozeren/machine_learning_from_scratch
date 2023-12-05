@@ -32,42 +32,25 @@ class DecisionTree():
     def _entropy(self, class_probabilities: list) -> float:
         return sum([-p * np.log2(p) for p in class_probabilities if p>0])
     
-    def _class_probabilities(self, labels: list, sample_weights: np.array) -> list:
-        label_counts = {}
-        total_weight = sum(sample_weights)
+    def _class_probabilities(self, labels: list) -> list:
+        total_count = len(labels)
+        return [label_count / total_count for label_count in Counter(labels).values()]
 
-        for label, weight in zip(labels, sample_weights):
-            if label in label_counts: label_counts[label] += weight
-            else: label_counts[label] = weight
-
-        return [count / total_weight for count in label_counts.values()]
-
-    def _data_entropy(self, labels: list, sample_weights: np.array) -> float:
-        return self._entropy(self._class_probabilities(labels, sample_weights))
+    def _data_entropy(self, labels: list) -> float:
+        return self._entropy(self._class_probabilities(labels))
     
-    def _partition_entropy(self, subset_1: np.array, subset_2: np.array, 
-                           sample_weights_1: np.array, sample_weights_2:np.array) -> float:
-        """
-            subset_1: first group of samples
-            subset_2: second group of samples
-            sample_weights_1: first group sample weights
-            sample_weights_2: secong group sample weights
-        """
-        total_count = subset_1.shape[0] + subset_2.shape[0]
-        subset_1_entropy_contr = self._data_entropy(subset_1, sample_weights_1) * (subset_1.shape[0] / total_count)
-        subset_2_entropy_contr = self._data_entropy(subset_2, sample_weights_2) * (subset_2.shape[0] / total_count)
-        return subset_1_entropy_contr + subset_2_entropy_contr
+    def _partition_entropy(self, subsets: list) -> float:
+        """subsets = list of label lists (EX: [[1,0,0], [1,1,1])"""
+        total_count = sum([len(subset) for subset in subsets])
+        return sum([self._data_entropy(subset) * (len(subset) / total_count) for subset in subsets])
     
-    def _split(self, data: np.array, sample_weights: np.array, feature_idx: int, feature_val: float) -> tuple:
+    def _split(self, data: np.array, feature_idx: int, feature_val: float) -> tuple:
         
         mask_below_threshold = data[:, feature_idx] < feature_val
         group1 = data[mask_below_threshold]
         group2 = data[~mask_below_threshold]
 
-        sample_weights_1 = sample_weights[mask_below_threshold]
-        sample_weights_2 = sample_weights[~mask_below_threshold]
-
-        return group1, group2, sample_weights_1, sample_weights_2
+        return group1, group2
     
     def _select_features_to_use(self, data: np.array) -> list:
         """
@@ -76,34 +59,34 @@ class DecisionTree():
         feature_idx = list(range(data.shape[1]-1))
 
         if self.numb_of_features_splitting == "sqrt":
-            fature_idx_to_use = np.random.choice(feature_idx, size=int(np.sqrt(len(feature_idx))))
+            feature_idx_to_use = np.random.choice(feature_idx, size=int(np.sqrt(len(feature_idx))))
         elif self.numb_of_features_splitting == "log":
-            fature_idx_to_use = np.random.choice(feature_idx, size=int(np.log2(len(feature_idx))))
+            feature_idx_to_use = np.random.choice(feature_idx, size=int(np.log2(len(feature_idx))))
         else:
-            fature_idx_to_use = feature_idx
+            feature_idx_to_use = feature_idx
 
-        return fature_idx_to_use
+        return feature_idx_to_use
         
-    def _find_best_split(self, data: np.array, sample_weights: np.array) -> tuple:
+    def _find_best_split(self, data: np.array) -> tuple:
         """
         Finds the best split (with the lowest entropy) given data
-        Returns 2 splitted groups
+        Returns 2 splitted groups and split information
         """
         min_part_entropy = 1e9
-        fature_idx_to_use =  self._select_features_to_use(data)
+        feature_idx_to_use =  self._select_features_to_use(data)
 
-        for idx in fature_idx_to_use:
-            feature_val = np.median(data[:, idx])
-            g1, g2, sw1, sw2 = self._split(data, sample_weights, idx, feature_val)
-            part_entropy = self._partition_entropy(g1[:, -1], g2[:, -1], sw1, sw2)
-            if part_entropy < min_part_entropy:
-                min_part_entropy = part_entropy
-                min_entropy_feature_idx = idx
-                min_entropy_feature_val = feature_val
-                g1_min, g2_min = g1, g2
-                sw1_min, sw2_min = sw1, sw2
+        for idx in feature_idx_to_use:
+            feature_vals = np.percentile(data[:, idx], q=np.arange(25, 100, 25))
+            for feature_val in feature_vals:
+                g1, g2, = self._split(data, idx, feature_val)
+                part_entropy = self._partition_entropy([g1[:, -1], g2[:, -1]])
+                if part_entropy < min_part_entropy:
+                    min_part_entropy = part_entropy
+                    min_entropy_feature_idx = idx
+                    min_entropy_feature_val = feature_val
+                    g1_min, g2_min = g1, g2
 
-        return g1_min, g2_min, sw1_min, sw2_min, min_entropy_feature_idx, min_entropy_feature_val, min_part_entropy
+        return g1_min, g2_min, min_entropy_feature_idx, min_entropy_feature_val, min_part_entropy
 
     def _find_label_probs(self, data: np.array) -> np.array:
 
@@ -121,7 +104,7 @@ class DecisionTree():
 
         return label_probabilities
 
-    def _create_tree(self, data: np.array, sample_weights: np.array, current_depth: int) -> TreeNode:
+    def _create_tree(self, data: np.array, current_depth: int) -> TreeNode:
         """
         Recursive, depth first tree creation algorithm
         """
@@ -131,8 +114,7 @@ class DecisionTree():
             return None
         
         # Find best split
-        split_1_data, split_2_data, sample_weights_1, sample_weights_2, \
-            split_feature_idx, split_feature_val, split_entropy = self._find_best_split(data, sample_weights)
+        split_1_data, split_2_data, split_feature_idx, split_feature_val, split_entropy = self._find_best_split(data)
         
         # Find label probs for the node
         label_probabilities = self._find_label_probs(data)
@@ -152,8 +134,8 @@ class DecisionTree():
             return node
 
         current_depth += 1
-        node.left = self._create_tree(split_1_data, sample_weights_1, current_depth)
-        node.right = self._create_tree(split_2_data, sample_weights_2, current_depth)
+        node.left = self._create_tree(split_1_data, current_depth)
+        node.right = self._create_tree(split_2_data, current_depth)
         
         return node
     
@@ -171,21 +153,17 @@ class DecisionTree():
 
         return pred_probs
 
-    def train(self, X_train: np.array, Y_train: np.array, sample_weights: np.array = None) -> None:
+    def train(self, X_train: np.array, Y_train: np.array) -> None:
         """
         Trains the model with given X and Y datasets
-        sample_weights: weight for each sample (used for AdaBoost algorithm), if none then every sample is equally weighted
         """
-        
-        if sample_weights is None:
-            sample_weights=np.full(X_train.shape[0], fill_value=1.0/X_train.shape[0])
 
         # Concat features and labels
         self.labels_in_train = np.unique(Y_train)
         train_data = np.concatenate((X_train, np.reshape(Y_train, (-1, 1))), axis=1)
 
         # Start creating the tree
-        self.tree = self._create_tree(data=train_data, sample_weights=sample_weights, current_depth=0)
+        self.tree = self._create_tree(data=train_data, current_depth=0)
 
         # Calculate feature importance
         self.feature_importances = dict.fromkeys(range(X_train.shape[1]), 0)
