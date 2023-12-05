@@ -41,7 +41,7 @@ class AdaBoostClassifier():
 
         return X_bootstrapped, y_bootstrapped    
 
-    def _calculate_sample_weights(self, base_learner) -> np.array:
+    def _calculate_sample_weights(self, base_learner: DecisionTree) -> np.array:
         """Calculates sample weights (see SAMME)"""
         preds = base_learner.predict(self.X_train)
         matches = (preds == self.y_train)
@@ -80,7 +80,7 @@ class AdaBoostClassifier():
 
         return pred_scores
 
-    def predict_proba(self, X) -> np.array:
+    def predict_proba(self, X: np.array) -> np.array:
         """Returns the predicted probs for a given data set"""
 
         pred_probs = []
@@ -93,7 +93,7 @@ class AdaBoostClassifier():
         
         return pred_probs
 
-    def predict(self, X) -> np.array:
+    def predict(self, X: np.array) -> np.array:
         """Returns the predicted labels for a given data set"""
 
         pred_probs = self.predict_proba(X)
