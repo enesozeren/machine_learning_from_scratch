@@ -9,6 +9,7 @@ Done:
 4) AdaBoost
 
 In Progress:
+1) None
 
 Not Started:
-1) TBD
+1) Gradient Boosting

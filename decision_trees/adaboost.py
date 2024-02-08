@@ -6,7 +6,7 @@ class AdaBoostClassifier():
     AdaBoost Classifier Model
     Training: Use "train" function with train set features and labels
     Predicting: Use "predict" function with test set features
-    The algorithm used in this class is SAMME algorithm with bootstrapping instead of weights
+    The algorithm used in this class is SAMME algorithm with boosting with resampling
     """
     
     def __init__(self, n_base_learner=10) -> None:
